@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "bloodnparticles",
+  "version": "2.0.0",
+  "name": "Blood N' Particles (Client)",
+  "description": "Client-side blood particle effects. Works on any server — no Fabric or mods required server-side.",
+  "authors": ["RenovatedStudios", "Client rewrite"],
+  "contact": {
+    "homepage": "https://www.curseforge.com/minecraft/mc-mods/blood-n-particles-mod"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.renovatedstudios.bloodnparticles.BloodNParticlesClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "fabric-api": "*",
+    "minecraft": "26.1"
+  }
+}
