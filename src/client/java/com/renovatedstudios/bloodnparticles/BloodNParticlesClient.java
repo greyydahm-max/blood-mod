@@ -86,6 +86,7 @@ import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
@@ -113,8 +114,8 @@ public class BloodNParticlesClient implements ClientModInitializer {
             int hurt = living.hurtTime;
 
             if (hurt == 1 && lastSeenHurtTime.getOrDefault(id, 0) != 1) {
-                Vec3 pos = living.position().add(0, living.getBbHeight() * 0.5, 0);
-                Vec3 feet = living.position().add(0, 0.05, 0);
+                Vec3 pos  = living.position().add(0, living.getBbHeight() * 0.5, 0);
+                Vec3 feet = living.position();
                 handleEntity(world, living, pos, feet);
             }
 
@@ -133,7 +134,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
         }
         if (e instanceof Stray) {
             particles(world, pos, ParticleTypes.SNOWFLAKE, 16, 0.4, 0.6);
-            splat(world, feet, 0.8f, 0.95f, 1.0f, "medium");
+            splat(world, feet, 0.85f, 0.95f, 1.0f, "medium");
             return;
         }
         if (e instanceof Bogged) {
@@ -163,35 +164,35 @@ public class BloodNParticlesClient implements ClientModInitializer {
             return;
         }
 
-        if (e instanceof CaveSpider)        { colorBlood(world, pos, feet, 0.05f, 0.3f,  0.05f, 5, "small");  return; }
-        if (e instanceof Spider)            { colorBlood(world, pos, feet, 0.1f,  0.5f,  0.1f,  5, "medium"); return; }
-        if (e instanceof Witch)             { colorBlood(world, pos, feet, 0.5f,  0.0f,  0.5f,  5, "medium"); return; }
-        if (e instanceof Allay)             { colorBlood(world, pos, feet, 0.4f,  0.7f,  1.0f,  4, "small");  return; }
-        if (e instanceof Armadillo)         { colorBlood(world, pos, feet, 0.6f,  0.45f, 0.35f, 5, "medium"); return; }
-        if (e instanceof Axolotl ax)        { axolotlBlood(world, pos, feet, ax); return; }
-        if (e instanceof Bee)               { colorBlood(world, pos, feet, 0.9f,  0.7f,  0.1f,  4, "small");  return; }
-        if (e instanceof Breeze)            { colorBlood(world, pos, feet, 0.3f,  0.6f,  0.9f,  5, "medium"); return; }
-        if (e instanceof ElderGuardian)     { colorBlood(world, pos, feet, 0.5f,  0.8f,  0.6f,  6, "big");    return; }
-        if (e instanceof Guardian)          { colorBlood(world, pos, feet, 0.2f,  0.7f,  0.5f,  5, "medium"); return; }
-        if (e instanceof GlowSquid)         { colorBlood(world, pos, feet, 0.05f, 0.85f, 0.7f,  5, "medium"); return; }
-        if (e instanceof Husk husk)         { huskBlood(world, pos, feet, husk); return; }
-        if (e instanceof Ravager)           { colorBlood(world, pos, feet, 0.55f, 0.35f, 0.25f, 8, "big");    return; }
-        if (e instanceof Squid)             { colorBlood(world, pos, feet, 0.1f,  0.1f,  0.4f,  5, "medium"); return; }
-        if (e instanceof Vex)               { colorBlood(world, pos, feet, 0.7f,  0.7f,  0.9f,  4, "small");  return; }
-        if (e instanceof Warden)            { colorBlood(world, pos, feet, 0.05f, 0.05f, 0.2f,  6, "big");    return; }
-        if (e instanceof Creaking)          { colorBlood(world, pos, feet, 0.3f,  0.2f,  0.1f,  5, "medium"); return; }
-        if (e instanceof MagmaCube mc)      { magmaBlood(world, pos, feet, mc); return; }
-        if (e instanceof Strider)           { colorBlood(world, pos, feet, 0.7f,  0.3f,  0.6f,  5, "medium"); return; }
-        if (e instanceof Blaze)             { colorBlood(world, pos, feet, 1.0f,  0.5f,  0.0f,  5, "medium"); return; }
-        if (e instanceof Endermite)         { colorBlood(world, pos, feet, 0.3f,  0.0f,  0.5f,  4, "small");  return; }
-        if (e instanceof Shulker)           { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
-        if (e instanceof EnderMan)          { colorBlood(world, pos, feet, 0.4f,  0.0f,  0.6f,  5, "big");    return; }
-        if (e instanceof Phantom)           { colorBlood(world, pos, feet, 0.2f,  0.1f,  0.4f,  5, "medium"); return; }
-        if (e instanceof Ghast)             { colorBlood(world, pos, feet, 0.9f,  0.8f,  0.8f,  8, "big");    return; }
-        if (e instanceof Slime sl)          { slimeBlood(world, pos, feet, sl); return; }
-        if (e instanceof AbstractIllager)   { redBlood(world, pos, feet, "medium"); return; }
+        if (e instanceof CaveSpider)      { colorBlood(world, pos, feet, 0.05f, 0.3f,  0.05f, 5, "small");  return; }
+        if (e instanceof Spider)          { colorBlood(world, pos, feet, 0.1f,  0.5f,  0.1f,  5, "medium"); return; }
+        if (e instanceof Witch)           { colorBlood(world, pos, feet, 0.5f,  0.0f,  0.5f,  5, "medium"); return; }
+        if (e instanceof Allay)           { colorBlood(world, pos, feet, 0.4f,  0.7f,  1.0f,  4, "small");  return; }
+        if (e instanceof Armadillo)       { colorBlood(world, pos, feet, 0.6f,  0.45f, 0.35f, 5, "medium"); return; }
+        if (e instanceof Axolotl ax)      { axolotlBlood(world, pos, feet, ax); return; }
+        if (e instanceof Bee)             { colorBlood(world, pos, feet, 0.9f,  0.7f,  0.1f,  4, "small");  return; }
+        if (e instanceof Breeze)          { colorBlood(world, pos, feet, 0.3f,  0.6f,  0.9f,  5, "medium"); return; }
+        if (e instanceof ElderGuardian)   { colorBlood(world, pos, feet, 0.5f,  0.8f,  0.6f,  6, "big");    return; }
+        if (e instanceof Guardian)        { colorBlood(world, pos, feet, 0.2f,  0.7f,  0.5f,  5, "medium"); return; }
+        if (e instanceof GlowSquid)       { colorBlood(world, pos, feet, 0.05f, 0.85f, 0.7f,  5, "medium"); return; }
+        if (e instanceof Husk husk)       { huskBlood(world, pos, feet, husk); return; }
+        if (e instanceof Ravager)         { colorBlood(world, pos, feet, 0.55f, 0.35f, 0.25f, 8, "big");    return; }
+        if (e instanceof Squid)           { colorBlood(world, pos, feet, 0.1f,  0.1f,  0.4f,  5, "medium"); return; }
+        if (e instanceof Vex)             { colorBlood(world, pos, feet, 0.7f,  0.7f,  0.9f,  4, "small");  return; }
+        if (e instanceof Warden)          { colorBlood(world, pos, feet, 0.05f, 0.05f, 0.2f,  6, "big");    return; }
+        if (e instanceof Creaking)        { colorBlood(world, pos, feet, 0.3f,  0.2f,  0.1f,  5, "medium"); return; }
+        if (e instanceof MagmaCube mc)    { magmaBlood(world, pos, feet, mc); return; }
+        if (e instanceof Strider)         { colorBlood(world, pos, feet, 0.7f,  0.3f,  0.6f,  5, "medium"); return; }
+        if (e instanceof Blaze)           { colorBlood(world, pos, feet, 1.0f,  0.5f,  0.0f,  5, "medium"); return; }
+        if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.3f,  0.0f,  0.5f,  4, "small");  return; }
+        if (e instanceof Shulker)         { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
+        if (e instanceof EnderMan)        { colorBlood(world, pos, feet, 0.4f,  0.0f,  0.6f,  5, "big");    return; }
+        if (e instanceof Phantom)         { colorBlood(world, pos, feet, 0.2f,  0.1f,  0.4f,  5, "medium"); return; }
+        if (e instanceof Ghast)           { colorBlood(world, pos, feet, 0.9f,  0.8f,  0.8f,  8, "big");    return; }
+        if (e instanceof Slime sl)        { slimeBlood(world, pos, feet, sl); return; }
+        if (e instanceof AbstractIllager) { redBlood(world, pos, feet, "medium"); return; }
         if (e instanceof PiglinBrute || e instanceof Piglin) { redBlood(world, pos, feet, "medium"); return; }
-        if (e instanceof Hoglin)            { redBlood(world, pos, feet, "big"); return; }
+        if (e instanceof Hoglin)          { redBlood(world, pos, feet, "big"); return; }
 
         if (isSmallRed(e))  { redBlood(world, pos, feet, "small");  return; }
         if (isMediumRed(e)) { redBlood(world, pos, feet, "medium"); return; }
@@ -200,55 +201,47 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof Player) { redBlood(world, pos, feet, "medium"); }
     }
 
-    // ── splat: the ground puddle ─────────────────────────────────────────────
+    // ── splat ────────────────────────────────────────────────────────────────
 
-    /**
-     * Spawns a large irregular flat puddle at ground level.
-     * Uses many overlapping dust particles with zero Y velocity,
-     * large scale, and randomised XZ spread to fake an organic splat shape.
-     */
     private void splat(ClientLevel world, Vec3 feet, float r, float g, float b, String size) {
-        int color = argb(r, g, b);
+        BlockState state = approximateBlockState(r, g, b);
+        BlockParticleOption effect = new BlockParticleOption(ParticleTypes.FALLING_DUST, state);
 
-        // Each size gets more particles and wider spread
-        int layers;
-        float baseScale;
+        int count;
         double spread;
         switch (size) {
-            case "small"  -> { layers = 18; baseScale = 2.8f; spread = 0.45; }
-            case "big"    -> { layers = 45; baseScale = 4.2f; spread = 0.90; }
-            default       -> { layers = 30; baseScale = 3.5f; spread = 0.65; }
+            case "small"  -> { count = 15; spread = 0.35; }
+            case "big"    -> { count = 40; spread = 0.80; }
+            default       -> { count = 25; spread = 0.55; }
         }
 
-        for (int i = 0; i < layers; i++) {
-            // Vary scale per particle for organic look
-            float scale = baseScale + rng.nextFloat() * 1.5f;
-            DustParticleOptions effect = new DustParticleOptions(color, scale);
+        // Snap to block surface below the entity
+        double groundY = Math.floor(feet.y) + 1.05;
 
-            // Clump more particles near centre, fewer at edges (squared distribution)
+        for (int i = 0; i < count; i++) {
             double ox = randSq(spread);
             double oz = randSq(spread);
-            // Tiny random Y so particles don't z-fight each other
-            double oy = rng.nextDouble() * 0.02;
-
             world.addParticle(effect,
-                feet.x + ox, feet.y + oy, feet.z + oz,
-                0, 0, 0);
+                feet.x + ox,
+                groundY + rng.nextDouble() * 0.05,
+                feet.z + oz,
+                rand(0.05), -2.0, rand(0.05));
         }
+    }
 
-        // Second pass: a few extra large blobs off-centre for the "splatter" arms
-        int arms = switch (size) { case "small" -> 3; case "big" -> 8; default -> 5; };
-        for (int i = 0; i < arms; i++) {
-            float scale = baseScale * 0.9f + rng.nextFloat() * 2.0f;
-            DustParticleOptions effect = new DustParticleOptions(color, scale);
-            double angle = rng.nextDouble() * Math.PI * 2;
-            double dist  = spread * 0.6 + rng.nextDouble() * spread * 0.8;
-            world.addParticle(effect,
-                feet.x + Math.cos(angle) * dist,
-                feet.y + rng.nextDouble() * 0.02,
-                feet.z + Math.sin(angle) * dist,
-                0, 0, 0);
-        }
+    private BlockState approximateBlockState(float r, float g, float b) {
+        if (r > 0.7f && g < 0.25f && b < 0.25f) return Blocks.REDSTONE_BLOCK.defaultBlockState();
+        if (r < 0.2f && g < 0.2f && b < 0.2f)   return Blocks.COAL_BLOCK.defaultBlockState();
+        if (g > r && g > b && g > 0.4f)           return Blocks.SLIME_BLOCK.defaultBlockState();
+        if (r > 0.6f && g > 0.5f && b < 0.3f)    return Blocks.GOLD_BLOCK.defaultBlockState();
+        if (r > 0.3f && b > 0.4f && g < 0.2f)    return Blocks.PURPLE_CONCRETE.defaultBlockState();
+        if (b > 0.5f && g > 0.5f && r < 0.3f)    return Blocks.CYAN_CONCRETE.defaultBlockState();
+        if (b > 0.5f && r < 0.3f && g < 0.3f)    return Blocks.BLUE_CONCRETE.defaultBlockState();
+        if (r > 0.6f && g > 0.25f && b < 0.2f)   return Blocks.ORANGE_CONCRETE.defaultBlockState();
+        if (r > 0.7f && g > 0.7f && b > 0.7f)    return Blocks.WHITE_CONCRETE.defaultBlockState();
+        if (r > 0.4f && g > 0.4f && b > 0.4f)    return Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState();
+        if (r > 0.4f && g > 0.25f && b < 0.25f)  return Blocks.BROWN_CONCRETE.defaultBlockState();
+        return Blocks.REDSTONE_BLOCK.defaultBlockState();
     }
 
     // ── blood helpers ────────────────────────────────────────────────────────
@@ -295,16 +288,16 @@ public class BloodNParticlesClient implements ClientModInitializer {
     }
 
     private void slimeBlood(ClientLevel world, Vec3 pos, Vec3 feet, Slime slime) {
-        String size = switch (slime.getSize()) { case 3 -> "big"; case 2 -> "medium"; default -> "small"; };
-        float scale = switch (slime.getSize()) { case 3 -> 1.6f;  case 2 -> 1.3f;    default -> 1.0f; };
+        String size  = switch (slime.getSize()) { case 3 -> "big"; case 2 -> "medium"; default -> "small"; };
+        float  scale = switch (slime.getSize()) { case 3 -> 1.6f;  case 2 -> 1.3f;    default -> 1.0f; };
         dust(world, pos, 0.4f, 0.8f, 0.4f, scale, 5, 0.35, 0.2);
         splat(world, feet, 0.4f, 0.8f, 0.4f, size);
         squish(world, pos);
     }
 
     private void magmaBlood(ClientLevel world, Vec3 pos, Vec3 feet, MagmaCube mc) {
-        String size = switch (mc.getSize()) { case 3 -> "big"; case 2 -> "medium"; default -> "small"; };
-        float scale = switch (mc.getSize()) { case 3 -> 1.6f;  case 2 -> 1.3f;    default -> 1.0f; };
+        String size  = switch (mc.getSize()) { case 3 -> "big"; case 2 -> "medium"; default -> "small"; };
+        float  scale = switch (mc.getSize()) { case 3 -> 1.6f;  case 2 -> 1.3f;    default -> 1.0f; };
         dust(world, pos, 1.0f, 0.3f, 0.0f, scale, 6, 0.4, 0.3);
         splat(world, feet, 1.0f, 0.3f, 0.0f, size);
         squish(world, pos);
@@ -315,7 +308,8 @@ public class BloodNParticlesClient implements ClientModInitializer {
     private void dust(ClientLevel world, Vec3 pos,
                       float r, float g, float b, float scale,
                       int count, double spread, double spreadY) {
-        DustParticleOptions effect = new DustParticleOptions(argb(r, g, b), scale);
+        int color = argb(r, g, b);
+        DustParticleOptions effect = new DustParticleOptions(color, scale);
         for (int i = 0; i < count; i++) {
             world.addParticle(effect,
                 pos.x + rand(spread), pos.y + rand(spreadY), pos.z + rand(spread),
@@ -324,7 +318,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
     }
 
     private void fallingDust(ClientLevel world, Vec3 pos,
-                             net.minecraft.world.level.block.state.BlockState state,
+                             BlockState state,
                              int count, double spread, double spreadY) {
         BlockParticleOption effect = new BlockParticleOption(ParticleTypes.FALLING_DUST, state);
         for (int i = 0; i < count; i++) {
@@ -365,7 +359,6 @@ public class BloodNParticlesClient implements ClientModInitializer {
         return (rng.nextDouble() - 0.5) * 2.0 * range;
     }
 
-    /** Squared distribution — more particles near centre, fewer at edges */
     private double randSq(double range) {
         double v = (rng.nextDouble() - 0.5) * 2.0;
         return Math.copySign(v * v, v) * range;
