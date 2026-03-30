@@ -4,19 +4,24 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.*;
-import net.minecraft.entity.passive.*;
-import net.minecraft.particle.BlockStateParticleEffect;
-import net.minecraft.particle.DustParticleEffect;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.*;
+import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.monster.piglin.Piglin;
+import net.minecraft.world.entity.monster.piglin.PiglinBrute;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
@@ -31,121 +36,103 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ClientTickEvents.END_WORLD_TICK.register(this::onTick);
+        ClientTickEvents.END_LEVEL_TICK.register(this::onTick);
     }
 
-    // ─── Tick ────────────────────────────────────────────────────────────────
+    private void onTick(ClientLevel world) {
+        if (Minecraft.getInstance().player == null) return;
 
-    private void onTick(ClientWorld world) {
-        if (MinecraftClient.getInstance().player == null) return;
-
-        for (Entity entity : world.getEntities()) {
+        for (Entity entity : world.entitiesForRendering()) {
             if (!(entity instanceof LivingEntity living)) continue;
 
             int id = living.getId();
             int hurt = living.hurtTime;
 
-            // Fire exactly once when hurtTime first becomes 1
             if (hurt == 1 && lastSeenHurtTime.getOrDefault(id, 0) != 1) {
-                Vec3d pos = living.getPos().add(0, living.getHeight() * 0.5, 0);
+                Vec3 pos = living.position().add(0, living.getBbHeight() * 0.5, 0);
                 handleEntity(world, living, pos);
             }
 
             lastSeenHurtTime.put(id, hurt);
         }
 
-        // Remove dead/unloaded entities from map
-        lastSeenHurtTime.entrySet().removeIf(e -> world.getEntityById(e.getKey()) == null);
+        lastSeenHurtTime.entrySet().removeIf(e -> world.getEntity(e.getKey()) == null);
     }
 
-    // ─── Entity dispatch ─────────────────────────────────────────────────────
+    private void handleEntity(ClientLevel world, LivingEntity e, Vec3 pos) {
 
-    private void handleEntity(ClientWorld world, LivingEntity e, Vec3d pos) {
-
-        // ── Skeleton-type: powder/snow particles ──────────────────────────────
-        if (e instanceof SkeletonEntity) {
-            fallingDust(world, pos, net.minecraft.block.Blocks.LIGHT_GRAY_CONCRETE_POWDER.getDefaultState(), 12, 0.4, 0.6);
+        // Skeleton types
+        if (e instanceof AbstractSkeleton && !(e instanceof Stray) && !(e instanceof WitherSkeleton) && !(e instanceof Bogged)) {
+            fallingDust(world, pos, Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 12, 0.4, 0.6);
             return;
         }
-        if (e instanceof WitherSkeletonEntity) {
-            fallingDust(world, pos.add(0, 0.3, 0), net.minecraft.block.Blocks.COAL_BLOCK.getDefaultState(), 20, 0.4, 0.6);
+        if (e instanceof WitherSkeleton) {
+            fallingDust(world, pos.add(0, 0.3, 0), Blocks.COAL_BLOCK.defaultBlockState(), 20, 0.4, 0.6);
             return;
         }
-        if (e instanceof StrayEntity) {
+        if (e instanceof Stray) {
             particles(world, pos, ParticleTypes.SNOWFLAKE, 16, 0.4, 0.6);
             return;
         }
-        if (e instanceof BoggedEntity) {
+        if (e instanceof Bogged) {
             dust(world, pos.add(0, 0.4, 0), 0.675f, 0.741f, 0.090f, 1.0f, 10, 0.4, 0.4);
             return;
         }
-        if (e instanceof SilverfishEntity) {
-            fallingDust(world, pos.subtract(0, 0.2, 0), net.minecraft.block.Blocks.LIGHT_GRAY_CONCRETE_POWDER.getDefaultState(), 8, 0.4, 0.2);
+        if (e instanceof Silverfish) {
+            fallingDust(world, pos.subtract(0, 0.2, 0), Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 8, 0.4, 0.2);
             return;
         }
-        if (e instanceof SnowGolemEntity) {
+        if (e instanceof SnowGolem) {
             particles(world, pos.add(0, 0.5, 0), ParticleTypes.SNOWFLAKE, 17, 0.4, 0.5);
             return;
         }
 
-        // ── Zombie group: greenish blood ──────────────────────────────────────
-        if (e instanceof ZombieEntity || e instanceof ZombieVillagerEntity
-                || e instanceof ZombifiedPiglinEntity || e instanceof ZoglinEntity) {
+        // Zombie group
+        if (e instanceof Zombie || e instanceof ZombieVillager
+                || e instanceof ZombifiedPiglin || e instanceof Zoglin) {
             colorBlood(world, pos, 0.35f, 0.55f, 0.1f, 5);
             return;
         }
 
-        // ── Special entity blood ──────────────────────────────────────────────
-        if (e instanceof DrownedEntity)      { colorBlood(world, pos, 0.0f,  0.45f, 0.6f,  5); return; }
-        if (e instanceof CaveSpiderEntity)   { colorBlood(world, pos, 0.05f, 0.3f,  0.05f, 5); return; }
-        if (e instanceof SpiderEntity)       { colorBlood(world, pos, 0.1f,  0.5f,  0.1f,  5); return; }
-        if (e instanceof WitchEntity)        { colorBlood(world, pos, 0.5f,  0.0f,  0.5f,  5); return; }
-        if (e instanceof AllayEntity)        { colorBlood(world, pos, 0.4f,  0.7f,  1.0f,  4); return; }
-        if (e instanceof ArmadilloEntity)    { colorBlood(world, pos, 0.6f,  0.45f, 0.35f, 5); return; }
-        if (e instanceof AxolotlEntity ax)   { axolotlBlood(world, pos, ax); return; }
-        if (e instanceof BeeEntity)          { colorBlood(world, pos, 0.9f,  0.7f,  0.1f,  4); return; }
-        if (e instanceof BreezeEntity)       { colorBlood(world, pos, 0.3f,  0.6f,  0.9f,  5); return; }
-        if (e instanceof ElderGuardianEntity){ colorBlood(world, pos, 0.5f,  0.8f,  0.6f,  6); return; }
-        if (e instanceof GuardianEntity)     { colorBlood(world, pos, 0.2f,  0.7f,  0.5f,  5); return; }
-        if (e instanceof GlowSquidEntity)    { colorBlood(world, pos, 0.05f, 0.85f, 0.7f,  5); return; }
-        if (e instanceof HuskEntity husk)    { huskBlood(world, pos, husk); return; }
-        if (e instanceof RavagerEntity)      { colorBlood(world, pos, 0.55f, 0.35f, 0.25f, 8); return; }
-        if (e instanceof SquidEntity)        { colorBlood(world, pos, 0.1f,  0.1f,  0.4f,  5); return; }
-        if (e instanceof VexEntity)          { colorBlood(world, pos, 0.7f,  0.7f,  0.9f,  4); return; }
-        if (e instanceof WardenEntity)       { colorBlood(world, pos, 0.05f, 0.05f, 0.2f,  6); return; }
-        if (e instanceof CreakingEntity)     { colorBlood(world, pos, 0.3f,  0.2f,  0.1f,  5); return; }
-        if (e instanceof MagmaCubeEntity mc) { magmaBlood(world, pos, mc); return; }
-        if (e instanceof StriderEntity)      { colorBlood(world, pos, 0.7f,  0.3f,  0.6f,  5); return; }
-        if (e instanceof BlazeEntity)        { colorBlood(world, pos, 1.0f,  0.5f,  0.0f,  5); return; }
-        if (e instanceof EndermiteEntity)    { colorBlood(world, pos, 0.3f,  0.0f,  0.5f,  4); return; }
-        if (e instanceof ShulkerEntity)      { colorBlood(world, pos, 0.6f,  0.3f,  0.8f,  5); return; }
-        if (e instanceof EndermanEntity)     { colorBlood(world, pos, 0.4f,  0.0f,  0.6f,  5); return; }
-        if (e instanceof PhantomEntity)      { colorBlood(world, pos, 0.2f,  0.1f,  0.4f,  5); return; }
-        if (e instanceof GhastEntity)        { colorBlood(world, pos, 0.9f,  0.8f,  0.8f,  8); return; }
-        if (e instanceof SlimeEntity sl)     { slimeBlood(world, pos, sl); return; }
+        // Special entities
+        if (e instanceof Drowned)           { colorBlood(world, pos, 0.0f,  0.45f, 0.6f,  5); return; }
+        if (e instanceof CaveSpider)        { colorBlood(world, pos, 0.05f, 0.3f,  0.05f, 5); return; }
+        if (e instanceof Spider)            { colorBlood(world, pos, 0.1f,  0.5f,  0.1f,  5); return; }
+        if (e instanceof Witch)             { colorBlood(world, pos, 0.5f,  0.0f,  0.5f,  5); return; }
+        if (e instanceof Allay)             { colorBlood(world, pos, 0.4f,  0.7f,  1.0f,  4); return; }
+        if (e instanceof Armadillo)         { colorBlood(world, pos, 0.6f,  0.45f, 0.35f, 5); return; }
+        if (e instanceof Axolotl ax)        { axolotlBlood(world, pos, ax); return; }
+        if (e instanceof Bee)               { colorBlood(world, pos, 0.9f,  0.7f,  0.1f,  4); return; }
+        if (e instanceof Breeze)            { colorBlood(world, pos, 0.3f,  0.6f,  0.9f,  5); return; }
+        if (e instanceof ElderGuardian)     { colorBlood(world, pos, 0.5f,  0.8f,  0.6f,  6); return; }
+        if (e instanceof Guardian)          { colorBlood(world, pos, 0.2f,  0.7f,  0.5f,  5); return; }
+        if (e instanceof GlowSquid)         { colorBlood(world, pos, 0.05f, 0.85f, 0.7f,  5); return; }
+        if (e instanceof Husk husk)         { huskBlood(world, pos, husk); return; }
+        if (e instanceof Ravager)           { colorBlood(world, pos, 0.55f, 0.35f, 0.25f, 8); return; }
+        if (e instanceof Squid)             { colorBlood(world, pos, 0.1f,  0.1f,  0.4f,  5); return; }
+        if (e instanceof Vex)               { colorBlood(world, pos, 0.7f,  0.7f,  0.9f,  4); return; }
+        if (e instanceof Warden)            { colorBlood(world, pos, 0.05f, 0.05f, 0.2f,  6); return; }
+        if (e instanceof Creaking)          { colorBlood(world, pos, 0.3f,  0.2f,  0.1f,  5); return; }
+        if (e instanceof MagmaCube mc)      { magmaBlood(world, pos, mc); return; }
+        if (e instanceof Strider)           { colorBlood(world, pos, 0.7f,  0.3f,  0.6f,  5); return; }
+        if (e instanceof Blaze)             { colorBlood(world, pos, 1.0f,  0.5f,  0.0f,  5); return; }
+        if (e instanceof Endermite)         { colorBlood(world, pos, 0.3f,  0.0f,  0.5f,  4); return; }
+        if (e instanceof Shulker)           { colorBlood(world, pos, 0.6f,  0.3f,  0.8f,  5); return; }
+        if (e instanceof EnderMan)          { colorBlood(world, pos, 0.4f,  0.0f,  0.6f,  5); return; }
+        if (e instanceof Phantom)           { colorBlood(world, pos, 0.2f,  0.1f,  0.4f,  5); return; }
+        if (e instanceof Ghast)             { colorBlood(world, pos, 0.9f,  0.8f,  0.8f,  8); return; }
+        if (e instanceof Slime sl)          { slimeBlood(world, pos, sl); return; }
+        if (e instanceof AbstractIllager)   { redBlood(world, pos, "medium"); return; }
+        if (e instanceof PiglinBrute || e instanceof Piglin) { redBlood(world, pos, "medium"); return; }
 
-        // ── Illagers (pillager, vindicator, evoker, illusioner) ───────────────
-        if (e instanceof IllagerEntity) { redBlood(world, pos, "medium"); return; }
-
-        // ── Piglin variants ───────────────────────────────────────────────────
-        if (e instanceof PiglinBruteEntity || e instanceof PiglinEntity) {
-            redBlood(world, pos, "medium"); return;
-        }
-
-        // ── Size-based red blood ──────────────────────────────────────────────
         if (isSmallRed(e))  { redBlood(world, pos, "small");  return; }
         if (isMediumRed(e)) { redBlood(world, pos, "medium"); return; }
         if (isBigRed(e))    { redBlood(world, pos, "big");    return; }
 
-        // ── Players ───────────────────────────────────────────────────────────
-        if (e instanceof net.minecraft.entity.player.PlayerEntity) {
-            redBlood(world, pos, "medium");
-        }
+        if (e instanceof Player) { redBlood(world, pos, "medium"); }
     }
 
-    // ─── Specific blood types ────────────────────────────────────────────────
-
-    private void redBlood(ClientWorld world, Vec3d pos, String size) {
+    private void redBlood(ClientLevel world, Vec3 pos, String size) {
         float scale;
         int count;
         switch (size) {
@@ -157,33 +144,33 @@ public class BloodNParticlesClient implements ClientModInitializer {
         squish(world, pos);
     }
 
-    private void colorBlood(ClientWorld world, Vec3d pos, float r, float g, float b, int count) {
+    private void colorBlood(ClientLevel world, Vec3 pos, float r, float g, float b, int count) {
         dust(world, pos, r, g, b, 1.2f, count, 0.35, 0.2);
         squish(world, pos);
     }
 
-    private void axolotlBlood(ClientWorld world, Vec3d pos, AxolotlEntity ax) {
+    private void axolotlBlood(ClientLevel world, Vec3 pos, Axolotl ax) {
         float r, g, b;
         switch (ax.getVariant()) {
             case LUCY  -> { r = 0.95f; g = 0.6f;  b = 0.7f; }
             case WILD  -> { r = 0.50f; g = 0.3f;  b = 0.2f; }
             case GOLD  -> { r = 0.90f; g = 0.7f;  b = 0.1f; }
             case CYAN  -> { r = 0.10f; g = 0.8f;  b = 0.7f; }
-            default    -> { r = 0.20f; g = 0.3f;  b = 0.9f; } // blue
+            default    -> { r = 0.20f; g = 0.3f;  b = 0.9f; }
         }
         colorBlood(world, pos, r, g, b, 5);
     }
 
-    private void huskBlood(ClientWorld world, Vec3d pos, HuskEntity husk) {
+    private void huskBlood(ClientLevel world, Vec3 pos, Husk husk) {
         if (husk.isBaby()) {
             colorBlood(world, pos, 0.8f, 0.65f, 0.3f, 4);
         } else {
             colorBlood(world, pos, 0.75f, 0.55f, 0.2f, 5);
-            fallingDust(world, pos, net.minecraft.block.Blocks.SAND.getDefaultState(), 30, 0.4, 0.6);
+            fallingDust(world, pos, Blocks.SAND.defaultBlockState(), 30, 0.4, 0.6);
         }
     }
 
-    private void slimeBlood(ClientWorld world, Vec3d pos, SlimeEntity slime) {
+    private void slimeBlood(ClientLevel world, Vec3 pos, Slime slime) {
         float scale = switch (slime.getSize()) {
             case 3  -> 1.6f;
             case 2  -> 1.3f;
@@ -193,7 +180,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
         squish(world, pos);
     }
 
-    private void magmaBlood(ClientWorld world, Vec3d pos, MagmaCubeEntity mc) {
+    private void magmaBlood(ClientLevel world, Vec3 pos, MagmaCube mc) {
         float scale = switch (mc.getSize()) {
             case 3  -> 1.6f;
             case 2  -> 1.3f;
@@ -203,12 +190,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
         squish(world, pos);
     }
 
-    // ─── Particle helpers ────────────────────────────────────────────────────
-
-    private void dust(ClientWorld world, Vec3d pos,
+    private void dust(ClientLevel world, Vec3 pos,
                       float r, float g, float b, float scale,
                       int count, double spread, double spreadY) {
-        DustParticleEffect effect = new DustParticleEffect(new Vector3f(r, g, b), scale);
+        DustParticleOptions effect = new DustParticleOptions(new Vector3f(r, g, b), scale);
         for (int i = 0; i < count; i++) {
             world.addParticle(effect,
                 pos.x + rand(spread), pos.y + rand(spreadY), pos.z + rand(spread),
@@ -216,10 +201,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
         }
     }
 
-    private void fallingDust(ClientWorld world, Vec3d pos,
-                             net.minecraft.block.BlockState state,
+    private void fallingDust(ClientLevel world, Vec3 pos,
+                             net.minecraft.world.level.block.state.BlockState state,
                              int count, double spread, double spreadY) {
-        BlockStateParticleEffect effect = new BlockStateParticleEffect(ParticleTypes.FALLING_DUST, state);
+        BlockParticleOption effect = new BlockParticleOption(ParticleTypes.FALLING_DUST, state);
         for (int i = 0; i < count; i++) {
             world.addParticle(effect,
                 pos.x + rand(spread), pos.y + rand(spreadY), pos.z + rand(spread),
@@ -227,8 +212,8 @@ public class BloodNParticlesClient implements ClientModInitializer {
         }
     }
 
-    private void particles(ClientWorld world, Vec3d pos,
-                           ParticleEffect type, int count,
+    private void particles(ClientLevel world, Vec3 pos,
+                           ParticleOptions type, int count,
                            double spread, double spreadY) {
         for (int i = 0; i < count; i++) {
             world.addParticle(type,
@@ -237,45 +222,43 @@ public class BloodNParticlesClient implements ClientModInitializer {
         }
     }
 
-    private void squish(ClientWorld world, Vec3d pos) {
-        MinecraftClient mc = MinecraftClient.getInstance();
+    private void squish(ClientLevel world, Vec3 pos) {
+        Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        double dist = mc.player.getPos().distanceTo(pos);
+        double dist = mc.player.position().distanceTo(pos);
         if (dist > 16) return;
         float vol = (float) Math.max(0, 1.0 - dist / 16.0) * 0.05f;
-        world.playSound(pos.x, pos.y, pos.z,
-            SoundEvents.BLOCK_SLIME_BLOCK_BREAK,
-            SoundCategory.BLOCKS, vol, 1.8f, false);
+        world.playLocalSound(pos.x, pos.y, pos.z,
+            SoundEvents.SLIME_BLOCK_BREAK,
+            SoundSource.BLOCKS, vol, 1.8f, false);
     }
 
     private double rand(double range) {
         return (rng.nextDouble() - 0.5) * 2.0 * range;
     }
 
-    // ─── Entity categories ───────────────────────────────────────────────────
-
     private boolean isSmallRed(LivingEntity e) {
-        return e instanceof ChickenEntity || e instanceof CatEntity
-            || e instanceof BatEntity    || e instanceof OcelotEntity
-            || e instanceof CodEntity    || e instanceof PufferfishEntity
-            || e instanceof SalmonEntity || e instanceof ParrotEntity
-            || e instanceof FrogEntity   || e instanceof RabbitEntity
-            || e instanceof TropicalFishEntity;
+        return e instanceof Chicken || e instanceof Cat
+            || e instanceof Bat     || e instanceof Ocelot
+            || e instanceof Cod     || e instanceof Pufferfish
+            || e instanceof Salmon  || e instanceof Parrot
+            || e instanceof Frog    || e instanceof Rabbit
+            || e instanceof TropicalFish;
     }
 
     private boolean isMediumRed(LivingEntity e) {
-        return e instanceof DolphinEntity   || e instanceof VillagerEntity
-            || e instanceof WanderingTraderEntity || e instanceof CowEntity
-            || e instanceof MooshroomEntity || e instanceof PigEntity
-            || e instanceof SheepEntity     || e instanceof LlamaEntity
-            || e instanceof TraderLlamaEntity || e instanceof WolfEntity
-            || e instanceof FoxEntity       || e instanceof TurtleEntity
-            || e instanceof GoatEntity;
+        return e instanceof Dolphin   || e instanceof Villager
+            || e instanceof WanderingTrader || e instanceof Cow
+            || e instanceof MushroomCow || e instanceof Pig
+            || e instanceof Sheep     || e instanceof Llama
+            || e instanceof TraderLlama || e instanceof Wolf
+            || e instanceof Fox       || e instanceof Turtle
+            || e instanceof Goat;
     }
 
     private boolean isBigRed(LivingEntity e) {
-        return e instanceof CamelEntity  || e instanceof DonkeyEntity
-            || e instanceof HorseEntity  || e instanceof MuleEntity
-            || e instanceof HoglinEntity || e instanceof ZombieHorseEntity;
+        return e instanceof Camel    || e instanceof Donkey
+            || e instanceof Horse    || e instanceof Mule
+            || e instanceof Hoglin   || e instanceof ZombieHorse;
     }
 }
