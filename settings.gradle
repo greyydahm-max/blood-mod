@@ -3,4 +3,7 @@ pluginManagement {
         maven { url = 'https://maven.fabricmc.net/' }
         gradlePluginPortal()
     }
+    plugins {
+        id 'net.fabricmc.fabric-loom' version '1.15-SNAPSHOT'
+    }
 }
