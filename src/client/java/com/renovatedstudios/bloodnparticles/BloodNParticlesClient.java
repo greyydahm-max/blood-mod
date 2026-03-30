@@ -20,9 +20,13 @@ import net.minecraft.world.entity.animal.armadillo.Armadillo;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.animal.bee.Bee;
 import net.minecraft.world.entity.animal.camel.Camel;
-import net.minecraft.world.entity.animal.cat.Cat;
+import net.minecraft.world.entity.animal.feline.Cat;
+import net.minecraft.world.entity.animal.feline.Ocelot;
 import net.minecraft.world.entity.animal.chicken.Chicken;
-import net.minecraft.world.entity.animal.cod.Cod;
+import net.minecraft.world.entity.animal.fish.Cod;
+import net.minecraft.world.entity.animal.fish.Pufferfish;
+import net.minecraft.world.entity.animal.fish.Salmon;
+import net.minecraft.world.entity.animal.fish.TropicalFish;
 import net.minecraft.world.entity.animal.cow.Cow;
 import net.minecraft.world.entity.animal.cow.MushroomCow;
 import net.minecraft.world.entity.animal.dolphin.Dolphin;
@@ -35,17 +39,13 @@ import net.minecraft.world.entity.animal.equine.ZombieHorse;
 import net.minecraft.world.entity.animal.fox.Fox;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.goat.Goat;
-import net.minecraft.world.entity.animal.ocelot.Ocelot;
+import net.minecraft.world.entity.animal.golem.SnowGolem;
 import net.minecraft.world.entity.animal.parrot.Parrot;
 import net.minecraft.world.entity.animal.pig.Pig;
-import net.minecraft.world.entity.animal.pufferfish.Pufferfish;
 import net.minecraft.world.entity.animal.rabbit.Rabbit;
-import net.minecraft.world.entity.animal.salmon.Salmon;
 import net.minecraft.world.entity.animal.sheep.Sheep;
-import net.minecraft.world.entity.animal.snowgolem.SnowGolem;
 import net.minecraft.world.entity.animal.squid.GlowSquid;
 import net.minecraft.world.entity.animal.squid.Squid;
-import net.minecraft.world.entity.animal.tropicalfish.TropicalFish;
 import net.minecraft.world.entity.animal.turtle.Turtle;
 import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.monster.breeze.Breeze;
@@ -82,8 +82,8 @@ import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.Witch;
 import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.npc.Villager;
-import net.minecraft.world.entity.npc.WanderingTrader;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
@@ -222,7 +222,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
             case CYAN  -> { r = 0.10f; g = 0.8f;  b = 0.7f; }
             default    -> { r = 0.20f; g = 0.3f;  b = 0.9f; }
         }
-        colorBlood(world, pos, r, g, b, 5);
+        colorBlood(world, ax.position().add(0, ax.getBbHeight() * 0.5, 0), r, g, b, 5);
     }
 
     private void huskBlood(ClientLevel world, Vec3 pos, Husk husk) {
