@@ -8,6 +8,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.phys.Vec3;
 
 @Environment(EnvType.CLIENT)
 public class BloodSplatParticle extends Particle {
@@ -40,7 +41,7 @@ public class BloodSplatParticle extends Particle {
 
     @Override
     public ParticleRenderType getGroup() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        return ParticleRenderType.SINGLE_QUADS;
     }
 
     @Override
@@ -49,14 +50,10 @@ public class BloodSplatParticle extends Particle {
         float fade = ageF > (this.lifetime - 30) ? (this.lifetime - ageF) / 30.0f : 1.0f;
         if (fade <= 0) return;
 
-        // Get camera position via entity access
-        double cx = camera.getEntity().getX();
-        double cy = camera.getEntity().getY() + camera.getEntity().getEyeHeight();
-        double cz = camera.getEntity().getZ();
-
-        float px = (float)(this.x - cx);
-        float py = (float)(this.y - cy);
-        float pz = (float)(this.z - cz);
+        Vec3 camPos = camera.position();
+        float px = (float)(this.x - camPos.x());
+        float py = (float)(this.y - camPos.y());
+        float pz = (float)(this.z - camPos.z());
 
         float u0 = sprite.getU0(), u1 = sprite.getU1();
         float v0 = sprite.getV0(), v1 = sprite.getV1();
@@ -77,6 +74,14 @@ public class BloodSplatParticle extends Particle {
                   .setColor(r, g, b, fade)
                   .setUv(us[i], vs[i])
                   .setLight(15728880);
+        }
+    }
+
+    @Override
+    public void tick() {
+        this.age++;
+        if (this.age >= this.lifetime) {
+            this.remove();
         }
     }
 
