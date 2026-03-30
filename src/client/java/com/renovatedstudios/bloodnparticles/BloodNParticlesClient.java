@@ -4,6 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -101,6 +102,15 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // Register particle type
+        ModParticles.register();
+
+        // Register particle renderer — links to our sprite sheet definition
+        ParticleFactoryRegistry.getInstance().register(
+            ModParticles.BLOOD_SPLAT,
+            BloodSplatParticle.Factory::new
+        );
+
         ClientTickEvents.END_LEVEL_TICK.register(this::onTick);
     }
 
@@ -203,45 +213,37 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     // ── splat ────────────────────────────────────────────────────────────────
 
+    /**
+     * Spawns a flat textured blood splat on the ground using our custom particle.
+     * Uses the original mod's blood1-15 textures, colour-tinted for non-red mobs.
+     */
     private void splat(ClientLevel world, Vec3 feet, float r, float g, float b, String size) {
-        BlockState state = approximateBlockState(r, g, b);
-        BlockParticleOption effect = new BlockParticleOption(ParticleTypes.FALLING_DUST, state);
+        int numSplats = switch (size) {
+            case "small" -> 1;
+            case "big"   -> 3;
+            default      -> 2;
+        };
 
-        int count;
-        double spread;
-        switch (size) {
-            case "small"  -> { count = 15; spread = 0.35; }
-            case "big"    -> { count = 40; spread = 0.80; }
-            default       -> { count = 25; spread = 0.55; }
+        for (int i = 0; i < numSplats; i++) {
+            float scale = switch (size) {
+                case "small" -> 1.2f + rng.nextFloat() * 0.4f;
+                case "big"   -> 2.2f + rng.nextFloat() * 0.6f;
+                default      -> 1.6f + rng.nextFloat() * 0.5f;
+            };
+
+            int texIndex = rng.nextInt(15); // blood1-15
+            float yaw = rng.nextInt(4) * 90f; // 0, 90, 180, or 270 degrees
+
+            // Slight random offset from entity centre for multiple splats
+            double ox = i == 0 ? 0 : rand(0.4);
+            double oz = i == 0 ? 0 : rand(0.4);
+
+            world.addParticle(
+                new BloodSplatParticleOption(r, g, b, texIndex, scale, yaw),
+                feet.x + ox, feet.y, feet.z + oz,
+                0, 0, 0
+            );
         }
-
-        // Snap to block surface below the entity
-        double groundY = Math.floor(feet.y) + 1.05;
-
-        for (int i = 0; i < count; i++) {
-            double ox = randSq(spread);
-            double oz = randSq(spread);
-            world.addParticle(effect,
-                feet.x + ox,
-                groundY + rng.nextDouble() * 0.05,
-                feet.z + oz,
-                rand(0.05), -2.0, rand(0.05));
-        }
-    }
-
-    private BlockState approximateBlockState(float r, float g, float b) {
-        if (r > 0.7f && g < 0.25f && b < 0.25f) return Blocks.REDSTONE_BLOCK.defaultBlockState();
-        if (r < 0.2f && g < 0.2f && b < 0.2f)   return Blocks.COAL_BLOCK.defaultBlockState();
-        if (g > r && g > b && g > 0.4f)           return Blocks.SLIME_BLOCK.defaultBlockState();
-        if (r > 0.6f && g > 0.5f && b < 0.3f)    return Blocks.GOLD_BLOCK.defaultBlockState();
-        if (r > 0.3f && b > 0.4f && g < 0.2f)    return Blocks.PURPLE_CONCRETE.defaultBlockState();
-        if (b > 0.5f && g > 0.5f && r < 0.3f)    return Blocks.CYAN_CONCRETE.defaultBlockState();
-        if (b > 0.5f && r < 0.3f && g < 0.3f)    return Blocks.BLUE_CONCRETE.defaultBlockState();
-        if (r > 0.6f && g > 0.25f && b < 0.2f)   return Blocks.ORANGE_CONCRETE.defaultBlockState();
-        if (r > 0.7f && g > 0.7f && b > 0.7f)    return Blocks.WHITE_CONCRETE.defaultBlockState();
-        if (r > 0.4f && g > 0.4f && b > 0.4f)    return Blocks.LIGHT_GRAY_CONCRETE.defaultBlockState();
-        if (r > 0.4f && g > 0.25f && b < 0.25f)  return Blocks.BROWN_CONCRETE.defaultBlockState();
-        return Blocks.REDSTONE_BLOCK.defaultBlockState();
     }
 
     // ── blood helpers ────────────────────────────────────────────────────────
@@ -357,11 +359,6 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     private double rand(double range) {
         return (rng.nextDouble() - 0.5) * 2.0 * range;
-    }
-
-    private double randSq(double range) {
-        double v = (rng.nextDouble() - 0.5) * 2.0;
-        return Math.copySign(v * v, v) * range;
     }
 
     // ── entity category helpers ──────────────────────────────────────────────
