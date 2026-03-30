@@ -38,7 +38,7 @@ public class BloodSplatParticleOption implements ParticleOptions {
         this.r = r; this.g = g; this.b = b;
         this.texIndex = texIndex;
         this.scale = scale;
-        this.yaw = yaw; // pre-baked rotation in degrees
+        this.yaw = yaw;
     }
 
     @Override
