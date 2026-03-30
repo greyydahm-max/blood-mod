@@ -4,7 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -106,7 +106,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
         ModParticles.register();
 
         // Register particle renderer — links to our sprite sheet definition
-        ParticleFactoryRegistry.getInstance().register(
+        ParticleProviderRegistry.getInstance().register(
             ModParticles.BLOOD_SPLAT,
             BloodSplatParticle.Factory::new
         );
