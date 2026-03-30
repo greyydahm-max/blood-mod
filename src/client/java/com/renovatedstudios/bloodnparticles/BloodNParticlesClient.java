@@ -14,15 +14,26 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.animal.*;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
+import net.minecraft.world.entity.animal.frog.Frog;
+import net.minecraft.world.entity.animal.horse.Camel;
+import net.minecraft.world.entity.animal.horse.Donkey;
+import net.minecraft.world.entity.animal.horse.Horse;
+import net.minecraft.world.entity.animal.horse.Mule;
+import net.minecraft.world.entity.animal.horse.ZombieHorse;
 import net.minecraft.world.entity.monster.*;
+import net.minecraft.world.entity.monster.breeze.Breeze;
+import net.minecraft.world.entity.monster.creaking.Creaking;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinBrute;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.npc.WanderingTrader;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,11 +72,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     private void handleEntity(ClientLevel world, LivingEntity e, Vec3 pos) {
 
-        // Skeleton types
-        if (e instanceof AbstractSkeleton && !(e instanceof Stray) && !(e instanceof WitherSkeleton) && !(e instanceof Bogged)) {
-            fallingDust(world, pos, Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 12, 0.4, 0.6);
-            return;
-        }
+        // Skeleton types — check subclasses first, then AbstractSkeleton for plain skeleton
         if (e instanceof WitherSkeleton) {
             fallingDust(world, pos.add(0, 0.3, 0), Blocks.COAL_BLOCK.defaultBlockState(), 20, 0.4, 0.6);
             return;
@@ -78,6 +85,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
             dust(world, pos.add(0, 0.4, 0), 0.675f, 0.741f, 0.090f, 1.0f, 10, 0.4, 0.4);
             return;
         }
+        if (e instanceof AbstractSkeleton) {
+            fallingDust(world, pos, Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 12, 0.4, 0.6);
+            return;
+        }
         if (e instanceof Silverfish) {
             fallingDust(world, pos.subtract(0, 0.2, 0), Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 8, 0.4, 0.2);
             return;
@@ -88,14 +99,13 @@ public class BloodNParticlesClient implements ClientModInitializer {
         }
 
         // Zombie group
-        if (e instanceof Zombie || e instanceof ZombieVillager
+        if (e instanceof Drowned || e instanceof Zombie || e instanceof ZombieVillager
                 || e instanceof ZombifiedPiglin || e instanceof Zoglin) {
             colorBlood(world, pos, 0.35f, 0.55f, 0.1f, 5);
             return;
         }
 
         // Special entities
-        if (e instanceof Drowned)           { colorBlood(world, pos, 0.0f,  0.45f, 0.6f,  5); return; }
         if (e instanceof CaveSpider)        { colorBlood(world, pos, 0.05f, 0.3f,  0.05f, 5); return; }
         if (e instanceof Spider)            { colorBlood(world, pos, 0.1f,  0.5f,  0.1f,  5); return; }
         if (e instanceof Witch)             { colorBlood(world, pos, 0.5f,  0.0f,  0.5f,  5); return; }
@@ -124,6 +134,7 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof Slime sl)          { slimeBlood(world, pos, sl); return; }
         if (e instanceof AbstractIllager)   { redBlood(world, pos, "medium"); return; }
         if (e instanceof PiglinBrute || e instanceof Piglin) { redBlood(world, pos, "medium"); return; }
+        if (e instanceof Hoglin)            { redBlood(world, pos, "big"); return; }
 
         if (isSmallRed(e))  { redBlood(world, pos, "small");  return; }
         if (isMediumRed(e)) { redBlood(world, pos, "medium"); return; }
@@ -193,7 +204,9 @@ public class BloodNParticlesClient implements ClientModInitializer {
     private void dust(ClientLevel world, Vec3 pos,
                       float r, float g, float b, float scale,
                       int count, double spread, double spreadY) {
-        DustParticleOptions effect = new DustParticleOptions(new Vector3f(r, g, b), scale);
+        // DustParticleOptions in 26.1 takes an ARGB int color and scale
+        int color = (255 << 24) | ((int)(r * 255) << 16) | ((int)(g * 255) << 8) | (int)(b * 255);
+        DustParticleOptions effect = new DustParticleOptions(color, scale);
         for (int i = 0; i < count; i++) {
             world.addParticle(effect,
                 pos.x + rand(spread), pos.y + rand(spreadY), pos.z + rand(spread),
@@ -247,18 +260,18 @@ public class BloodNParticlesClient implements ClientModInitializer {
     }
 
     private boolean isMediumRed(LivingEntity e) {
-        return e instanceof Dolphin   || e instanceof Villager
+        return e instanceof Dolphin       || e instanceof Villager
             || e instanceof WanderingTrader || e instanceof Cow
-            || e instanceof MushroomCow || e instanceof Pig
-            || e instanceof Sheep     || e instanceof Llama
-            || e instanceof TraderLlama || e instanceof Wolf
-            || e instanceof Fox       || e instanceof Turtle
+            || e instanceof MushroomCow   || e instanceof Pig
+            || e instanceof Sheep         || e instanceof Llama
+            || e instanceof TraderLlama   || e instanceof Wolf
+            || e instanceof Fox           || e instanceof Turtle
             || e instanceof Goat;
     }
 
     private boolean isBigRed(LivingEntity e) {
-        return e instanceof Camel    || e instanceof Donkey
-            || e instanceof Horse    || e instanceof Mule
-            || e instanceof Hoglin   || e instanceof ZombieHorse;
+        return e instanceof Camel  || e instanceof Donkey
+            || e instanceof Horse  || e instanceof Mule
+            || e instanceof ZombieHorse;
     }
 }
