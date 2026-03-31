@@ -17,7 +17,8 @@ public class BloodSplatParticleOption implements ParticleOptions {
             com.mojang.serialization.Codec.FLOAT.fieldOf("b").forGetter(o -> o.b),
             com.mojang.serialization.Codec.INT.fieldOf("tex").forGetter(o -> o.texIndex),
             com.mojang.serialization.Codec.FLOAT.fieldOf("scale").forGetter(o -> o.scale),
-            com.mojang.serialization.Codec.FLOAT.fieldOf("yaw").forGetter(o -> o.yaw)
+            com.mojang.serialization.Codec.FLOAT.fieldOf("yaw").forGetter(o -> o.yaw),
+            com.mojang.serialization.Codec.BOOL.fieldOf("wall").forGetter(o -> o.isWall)
         ).apply(inst, BloodSplatParticleOption::new));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, BloodSplatParticleOption> STREAM_CODEC =
@@ -28,17 +29,24 @@ public class BloodSplatParticleOption implements ParticleOptions {
             ByteBufCodecs.INT,   o -> o.texIndex,
             ByteBufCodecs.FLOAT, o -> o.scale,
             ByteBufCodecs.FLOAT, o -> o.yaw,
+            ByteBufCodecs.BOOL,  o -> o.isWall,
             BloodSplatParticleOption::new
         );
 
     public final float r, g, b, scale, yaw;
     public final int texIndex;
+    public final boolean isWall;
 
-    public BloodSplatParticleOption(float r, float g, float b, int texIndex, float scale, float yaw) {
+    public BloodSplatParticleOption(float r, float g, float b, int texIndex, float scale, float yaw, boolean isWall) {
         this.r = r; this.g = g; this.b = b;
         this.texIndex = texIndex;
         this.scale = scale;
         this.yaw = yaw;
+        this.isWall = isWall;
+    }
+
+    public BloodSplatParticleOption(float r, float g, float b, int texIndex, float scale, float yaw) {
+        this(r, g, b, texIndex, scale, yaw, false);
     }
 
     @Override
