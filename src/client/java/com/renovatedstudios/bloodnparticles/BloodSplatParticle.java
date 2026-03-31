@@ -1,88 +1,73 @@
 package com.renovatedstudios.bloodnparticles;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.phys.Vec3;
 
 @Environment(EnvType.CLIENT)
-public class BloodSplatParticle extends Particle {
+public class BloodSplatParticle extends SingleQuadParticle {
 
-    private final float r, g, b;
-    private final float halfSize;
     private final float cosYaw, sinYaw;
-    private final TextureAtlasSprite sprite;
 
     protected BloodSplatParticle(ClientLevel level, double x, double y, double z,
                                   BloodSplatParticleOption opts, SpriteSet sprites) {
-        super(level, x, y, z);
+        super(level, x, y, z, sprites.get(opts.texIndex % 15, 14));
 
-        this.r = opts.r;
-        this.g = opts.g;
-        this.b = opts.b;
-        this.halfSize = opts.scale * 0.5f;
+        this.rCol = opts.r;
+        this.gCol = opts.g;
+        this.bCol = opts.b;
+        this.quadSize = opts.scale;
 
         float yawRad = (float) Math.toRadians(opts.yaw);
         this.cosYaw = (float) Math.cos(yawRad);
         this.sinYaw = (float) Math.sin(yawRad);
 
-        this.sprite = sprites.get(opts.texIndex % 15, 14);
-
+        // Snap to ground
         this.y = Math.floor(y) + 1.001;
+        this.yo = this.y;
+
         this.lifetime = 100 + level.getRandom().nextInt(60);
         this.hasPhysics = false;
         this.gravity = 0;
     }
 
     @Override
-    public ParticleRenderType getGroup() {
-        return ParticleRenderType.SINGLE_QUADS;
+    protected SingleQuadParticle.Layer getLayer() {
+        return SingleQuadParticle.Layer.TRANSLUCENT;
     }
 
     @Override
-    public void render(VertexConsumer buffer, Camera camera, float partialTick) {
-        float ageF = this.age + partialTick;
-        float fade = ageF > (this.lifetime - 30) ? (this.lifetime - ageF) / 30.0f : 1.0f;
-        if (fade <= 0) return;
-
-        Vec3 camPos = camera.position();
-        float px = (float)(this.x - camPos.x());
-        float py = (float)(this.y - camPos.y());
-        float pz = (float)(this.z - camPos.z());
-
-        float u0 = sprite.getU0(), u1 = sprite.getU1();
-        float v0 = sprite.getV0(), v1 = sprite.getV1();
-
-        float s = halfSize;
-        float cos = this.cosYaw;
-        float sin = this.sinYaw;
-
-        float[] lx = {-s,  s,  s, -s};
-        float[] lz = {-s, -s,  s,  s};
-        float[] us = {u0, u1, u1, u0};
-        float[] vs = {v0, v0, v1, v1};
-
-        for (int i = 0; i < 4; i++) {
-            float wx = lx[i] * cos - lz[i] * sin;
-            float wz = lx[i] * sin + lz[i] * cos;
-            buffer.addVertex(px + wx, py, pz + wz)
-                  .setColor(r, g, b, fade)
-                  .setUv(us[i], vs[i])
-                  .setLight(15728880);
-        }
+    public SingleQuadParticle.FacingCameraMode getFacingCameraMode() {
+        // Flat on the ground — only rotate around Y axis
+        return (target, camera, partialTickTime) -> {
+            // Lay flat: rotate 90 degrees around X, then apply our yaw
+            target.rotationX((float)(Math.PI / 2));
+            target.rotateY((float) Math.atan2(sinYaw, cosYaw));
+        };
     }
 
     @Override
     public void tick() {
-        this.age++;
-        if (this.age >= this.lifetime) {
+        this.xo = this.x;
+        this.yo = this.y;
+        this.zo = this.z;
+        if (this.age++ >= this.lifetime) {
             this.remove();
         }
+        // Fade out in last 30 ticks
+        float normalizedAge = (float) this.age / this.lifetime;
+        if (normalizedAge > 0.7f) {
+            this.alpha = 1.0f - (normalizedAge - 0.7f) / 0.3f;
+        }
+    }
+
+    @Override
+    public ParticleRenderType getGroup() {
+        return ParticleRenderType.SINGLE_QUADS;
     }
 
     @Environment(EnvType.CLIENT)
