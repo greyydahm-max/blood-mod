@@ -190,10 +190,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.25f, 0.0f,  0.4f,  4, "small");  return; }
         if (e instanceof Shulker)         { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
 
-        // Enderman — dark purple, bypass colorBlood to avoid red tint from dust
+        // Enderman — vivid purple matching reference image
         if (e instanceof EnderMan) {
-            dust(world, pos, 0.2f, 0.0f, 0.8f, 1.2f, 5, 0.35, 0.2);
-            splat(world, feet, 0.2f, 0.0f, 0.8f, "big");
+            dust(world, pos, 0.05f, 0.0f, 1.0f, 1.2f, 5, 0.35, 0.2);
+            splat(world, feet, 0.05f, 0.0f, 1.0f, "big");
             squish(world, pos);
             return;
         }
