@@ -6,6 +6,8 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
 import net.minecraft.util.RandomSource;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 
 @Environment(EnvType.CLIENT)
 public class BloodSplatParticle extends SingleQuadParticle {
@@ -25,15 +27,7 @@ public class BloodSplatParticle extends SingleQuadParticle {
         this.isWall = opts.isWall;
 
         if (!opts.isWall) {
-            double groundY = y;
-            for (int i = 0; i < 8; i++) {
-                BlockPos check = BlockPos.containing(x, groundY - 0.1, z);
-                if (!level.getBlockState(check).isAir()) {
-                    groundY = check.getY() + 1.0;
-                    break;
-                }
-                groundY -= 1.0;
-            }
+            double groundY = findGround(level, x, y, z);
             this.y = groundY + 0.02;
         } else {
             this.y = y;
@@ -48,6 +42,23 @@ public class BloodSplatParticle extends SingleQuadParticle {
         this.lifetime = 100 + level.getRandom().nextInt(60);
         this.hasPhysics = false;
         this.gravity = 0;
+    }
+
+    private double findGround(ClientLevel level, double x, double y, double z) {
+        double checkY = y;
+        for (int i = 0; i < 10; i++) {
+            BlockPos pos = BlockPos.containing(x, checkY - 0.1, z);
+            net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+            // Check if this block has a solid top surface
+            VoxelShape shape = state.getCollisionShape(level, pos);
+            if (!shape.isEmpty()) {
+                // Get the highest point of this block's collision shape
+                double topY = pos.getY() + shape.max(net.minecraft.core.Direction.Axis.Y);
+                return topY;
+            }
+            checkY -= 1.0;
+        }
+        return y;
     }
 
     @Override
