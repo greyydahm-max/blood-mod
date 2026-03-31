@@ -90,6 +90,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -134,7 +135,6 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     private void handleEntity(ClientLevel world, LivingEntity e, Vec3 pos, Vec3 feet) {
 
-        // Skeletons — bone/particle effects only, no blood splats
         if (e instanceof WitherSkeleton) {
             fallingDust(world, pos.add(0, 0.3, 0), Blocks.COAL_BLOCK.defaultBlockState(), 20, 0.4, 0.6);
             return;
@@ -190,7 +190,6 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.25f, 0.0f,  0.4f,  4, "small");  return; }
         if (e instanceof Shulker)         { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
 
-        // Enderman — vivid purple matching reference image
         if (e instanceof EnderMan) {
             dust(world, pos, 0.05f, 0.0f, 1.0f, 1.2f, 5, 0.35, 0.2);
             splat(world, feet, 0.05f, 0.0f, 1.0f, "big");
@@ -252,8 +251,22 @@ public class BloodNParticlesClient implements ClientModInitializer {
         int n = rng.nextInt(4);
         double nx = feet.x + offsets[n][0];
         double nz = feet.z + offsets[n][1];
-        BlockPos neighborPos = BlockPos.containing(nx, feet.y - 0.5, nz);
-        if (world.getBlockState(neighborPos).isAir()) {
+
+        // Check at mid-body height — must be a full solid block to get a wall drip
+        // This prevents thin blocks like carpet/snow from triggering wall splats
+        BlockPos wallCheckPos = BlockPos.containing(nx, feet.y + 0.5, nz);
+        BlockState wallState = world.getBlockState(wallCheckPos);
+        VoxelShape wallShape = wallState.getCollisionShape(world, wallCheckPos);
+
+        // Only spawn wall drip if neighbor at body height is a solid full-height block
+        boolean isSolidWall = !wallShape.isEmpty()
+            && wallShape.max(net.minecraft.core.Direction.Axis.Y) >= 0.9;
+
+        // Also check that the block below the wall is a drop-off (air or open)
+        BlockPos belowWallPos = BlockPos.containing(nx, feet.y - 0.5, nz);
+        boolean isDropOff = world.getBlockState(belowWallPos).isAir();
+
+        if (isSolidWall && isDropOff) {
             int drips = switch (size) { case "small" -> 1; case "big" -> 2; default -> 1; };
             for (int d = 0; d < drips; d++) {
                 double wallX = feet.x + offsets[n][0] * 0.501 + (offsets[n][1] != 0 ? rand(0.2) : 0);
