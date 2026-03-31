@@ -217,9 +217,9 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
         for (int i = 0; i < numSplats; i++) {
             float scale = switch (size) {
-                case "small" -> 1.2f + rng.nextFloat() * 0.4f;
-                case "big"   -> 2.2f + rng.nextFloat() * 0.6f;
-                default      -> 1.6f + rng.nextFloat() * 0.5f;
+                case "small" -> 0.8f + rng.nextFloat() * 0.3f;
+                case "big"   -> 1.6f + rng.nextFloat() * 0.5f;
+                default      -> 1.1f + rng.nextFloat() * 0.4f;
             };
             int texIndex = rng.nextInt(15);
             float yaw = rng.nextInt(4) * 90f;
@@ -233,26 +233,32 @@ public class BloodNParticlesClient implements ClientModInitializer {
             );
         }
 
-        // Wall splats on block edges
+        // Wall drips — only trigger 40% of the time to avoid buildup
+        if (rng.nextFloat() > 0.4f) return;
+
         float wallScale = switch (size) {
-            case "small" -> 0.8f;
-            case "big"   -> 1.6f;
-            default      -> 1.2f;
+            case "small" -> 0.35f + rng.nextFloat() * 0.15f;
+            case "big"   -> 0.65f + rng.nextFloat() * 0.2f;
+            default      -> 0.45f + rng.nextFloat() * 0.15f;
         };
 
         double[][] offsets = {{1,0}, {-1,0}, {0,1}, {0,-1}};
         float[]    wallYaws = {90f, 270f, 0f, 180f};
 
-        for (int n = 0; n < 4; n++) {
-            double nx = feet.x + offsets[n][0];
-            double nz = feet.z + offsets[n][1];
-            BlockPos neighborPos = BlockPos.containing(nx, feet.y - 0.5, nz);
-            if (world.getBlockState(neighborPos).isAir()) {
-                double wallX = feet.x + offsets[n][0] * 0.5;
-                double wallY = feet.y + 0.5;
-                double wallZ = feet.z + offsets[n][1] * 0.5;
+        // Only check 1 random neighbor instead of all 4
+        int n = rng.nextInt(4);
+        double nx = feet.x + offsets[n][0];
+        double nz = feet.z + offsets[n][1];
+        BlockPos neighborPos = BlockPos.containing(nx, feet.y - 0.5, nz);
+        if (world.getBlockState(neighborPos).isAir()) {
+            int drips = switch (size) { case "small" -> 1; case "big" -> 2; default -> 1; };
+            for (int d = 0; d < drips; d++) {
+                double wallX = feet.x + offsets[n][0] * 0.501 + (offsets[n][1] != 0 ? rand(0.25) : 0);
+                double wallY = feet.y - 0.15 - d * 0.3 + rand(0.1);
+                double wallZ = feet.z + offsets[n][1] * 0.501 + (offsets[n][0] != 0 ? rand(0.25) : 0);
                 world.addParticle(
-                    new BloodSplatParticleOption(r, g, b, rng.nextInt(15), wallScale, wallYaws[n], true),
+                    new BloodSplatParticleOption(r, g, b, rng.nextInt(15),
+                        wallScale * (1.0f - d * 0.2f), wallYaws[n], true),
                     wallX, wallY, wallZ,
                     0, 0, 0
                 );
