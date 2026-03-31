@@ -5,13 +5,13 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.core.BlockPos;
 
 @Environment(EnvType.CLIENT)
 public class BloodSplatParticle extends SingleQuadParticle {
 
-    private final float cosYaw, sinYaw;
+    private final float yawAngle;
 
     protected BloodSplatParticle(ClientLevel level, double x, double y, double z,
                                   BloodSplatParticleOption opts, SpriteSet sprites) {
@@ -21,14 +21,25 @@ public class BloodSplatParticle extends SingleQuadParticle {
         this.gCol = opts.g;
         this.bCol = opts.b;
         this.quadSize = opts.scale;
+        this.yawAngle = (float) Math.toRadians(opts.yaw);
 
-        float yawRad = (float) Math.toRadians(opts.yaw);
-        this.cosYaw = (float) Math.cos(yawRad);
-        this.sinYaw = (float) Math.sin(yawRad);
+        // Walk downward from feet to find the actual block surface
+        double groundY = y;
+        for (int i = 0; i < 8; i++) {
+            BlockPos check = BlockPos.containing(x, groundY - 0.1, z);
+            if (!level.getBlockState(check).isAir()) {
+                groundY = check.getY() + 1.0;
+                break;
+            }
+            groundY -= 1.0;
+        }
 
-        // Snap to ground
-        this.y = Math.floor(y) + 1.001;
+        this.y = groundY + 0.02;
         this.yo = this.y;
+        this.x = x;
+        this.xo = x;
+        this.z = z;
+        this.zo = z;
 
         this.lifetime = 100 + level.getRandom().nextInt(60);
         this.hasPhysics = false;
@@ -42,11 +53,13 @@ public class BloodSplatParticle extends SingleQuadParticle {
 
     @Override
     public SingleQuadParticle.FacingCameraMode getFacingCameraMode() {
-        // Flat on the ground — only rotate around Y axis
+        // Flat on ground: -90 degrees around X axis lays the quad horizontal,
+        // then rotate around Y for the random yaw
+        float yaw = this.yawAngle;
         return (target, camera, partialTickTime) -> {
-            // Lay flat: rotate 90 degrees around X, then apply our yaw
-            target.rotationX((float)(Math.PI / 2));
-            target.rotateY((float) Math.atan2(sinYaw, cosYaw));
+            target.identity()
+                  .rotateY(yaw)
+                  .rotateX((float)(-Math.PI / 2));
         };
     }
 
@@ -58,7 +71,6 @@ public class BloodSplatParticle extends SingleQuadParticle {
         if (this.age++ >= this.lifetime) {
             this.remove();
         }
-        // Fade out in last 30 ticks
         float normalizedAge = (float) this.age / this.lifetime;
         if (normalizedAge > 0.7f) {
             this.alpha = 1.0f - (normalizedAge - 0.7f) / 0.3f;
