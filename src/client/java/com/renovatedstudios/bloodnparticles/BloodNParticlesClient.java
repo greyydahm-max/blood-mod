@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
@@ -103,12 +104,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ModParticles.register();
-
         ParticleProviderRegistry.getInstance().register(
             ModParticles.BLOOD_SPLAT,
             BloodSplatParticle.Factory::new
         );
-
         ClientTickEvents.END_LEVEL_TICK.register(this::onTick);
     }
 
@@ -222,18 +221,42 @@ public class BloodNParticlesClient implements ClientModInitializer {
                 case "big"   -> 2.2f + rng.nextFloat() * 0.6f;
                 default      -> 1.6f + rng.nextFloat() * 0.5f;
             };
-
             int texIndex = rng.nextInt(15);
             float yaw = rng.nextInt(4) * 90f;
-
             double ox = i == 0 ? 0 : rand(0.4);
             double oz = i == 0 ? 0 : rand(0.4);
 
             world.addParticle(
-                new BloodSplatParticleOption(r, g, b, texIndex, scale, yaw),
+                new BloodSplatParticleOption(r, g, b, texIndex, scale, yaw, false),
                 feet.x + ox, feet.y, feet.z + oz,
                 0, 0, 0
             );
+        }
+
+        // Wall splats on block edges
+        float wallScale = switch (size) {
+            case "small" -> 0.8f;
+            case "big"   -> 1.6f;
+            default      -> 1.2f;
+        };
+
+        double[][] offsets = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+        float[]    wallYaws = {90f, 270f, 0f, 180f};
+
+        for (int n = 0; n < 4; n++) {
+            double nx = feet.x + offsets[n][0];
+            double nz = feet.z + offsets[n][1];
+            BlockPos neighborPos = BlockPos.containing(nx, feet.y - 0.5, nz);
+            if (world.getBlockState(neighborPos).isAir()) {
+                double wallX = feet.x + offsets[n][0] * 0.5;
+                double wallY = feet.y + 0.5;
+                double wallZ = feet.z + offsets[n][1] * 0.5;
+                world.addParticle(
+                    new BloodSplatParticleOption(r, g, b, rng.nextInt(15), wallScale, wallYaws[n], true),
+                    wallX, wallY, wallZ,
+                    0, 0, 0
+                );
+            }
         }
     }
 
