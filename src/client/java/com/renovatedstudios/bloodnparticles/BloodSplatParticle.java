@@ -4,7 +4,6 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.*;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.RandomSource;
 import net.minecraft.core.BlockPos;
 
@@ -12,6 +11,7 @@ import net.minecraft.core.BlockPos;
 public class BloodSplatParticle extends SingleQuadParticle {
 
     private final float yawAngle;
+    private final boolean isWall;
 
     protected BloodSplatParticle(ClientLevel level, double x, double y, double z,
                                   BloodSplatParticleOption opts, SpriteSet sprites) {
@@ -22,19 +22,23 @@ public class BloodSplatParticle extends SingleQuadParticle {
         this.bCol = opts.b;
         this.quadSize = opts.scale;
         this.yawAngle = (float) Math.toRadians(opts.yaw);
+        this.isWall = opts.isWall;
 
-        // Walk downward from feet to find the actual block surface
-        double groundY = y;
-        for (int i = 0; i < 8; i++) {
-            BlockPos check = BlockPos.containing(x, groundY - 0.1, z);
-            if (!level.getBlockState(check).isAir()) {
-                groundY = check.getY() + 1.0;
-                break;
+        if (!opts.isWall) {
+            double groundY = y;
+            for (int i = 0; i < 8; i++) {
+                BlockPos check = BlockPos.containing(x, groundY - 0.1, z);
+                if (!level.getBlockState(check).isAir()) {
+                    groundY = check.getY() + 1.0;
+                    break;
+                }
+                groundY -= 1.0;
             }
-            groundY -= 1.0;
+            this.y = groundY + 0.02;
+        } else {
+            this.y = y;
         }
 
-        this.y = groundY + 0.02;
         this.yo = this.y;
         this.x = x;
         this.xo = x;
@@ -53,13 +57,16 @@ public class BloodSplatParticle extends SingleQuadParticle {
 
     @Override
     public SingleQuadParticle.FacingCameraMode getFacingCameraMode() {
-        // Flat on ground: -90 degrees around X axis lays the quad horizontal,
-        // then rotate around Y for the random yaw
         float yaw = this.yawAngle;
+        boolean wall = this.isWall;
         return (target, camera, partialTickTime) -> {
-            target.identity()
-                  .rotateY(yaw)
-                  .rotateX((float)(-Math.PI / 2));
+            if (wall) {
+                target.identity().rotateY(yaw);
+            } else {
+                target.identity()
+                      .rotateY(yaw)
+                      .rotateX((float)(-Math.PI / 2));
+            }
         };
     }
 
