@@ -134,29 +134,25 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
     private void handleEntity(ClientLevel world, LivingEntity e, Vec3 pos, Vec3 feet) {
 
+        // Skeletons — bone dust only, no blood
         if (e instanceof WitherSkeleton) {
             fallingDust(world, pos.add(0, 0.3, 0), Blocks.COAL_BLOCK.defaultBlockState(), 20, 0.4, 0.6);
-            splat(world, feet, 0.1f, 0.1f, 0.1f, "medium");
             return;
         }
         if (e instanceof Stray) {
             particles(world, pos, ParticleTypes.SNOWFLAKE, 16, 0.4, 0.6);
-            splat(world, feet, 0.85f, 0.95f, 1.0f, "medium");
             return;
         }
         if (e instanceof Bogged) {
             dust(world, pos.add(0, 0.4, 0), 0.675f, 0.741f, 0.090f, 1.0f, 10, 0.4, 0.4);
-            splat(world, feet, 0.675f, 0.741f, 0.090f, "medium");
             return;
         }
         if (e instanceof AbstractSkeleton) {
             fallingDust(world, pos, Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 12, 0.4, 0.6);
-            splat(world, feet, 0.8f, 0.8f, 0.8f, "medium");
             return;
         }
         if (e instanceof Silverfish) {
             fallingDust(world, pos.subtract(0, 0.2, 0), Blocks.LIGHT_GRAY_CONCRETE_POWDER.defaultBlockState(), 8, 0.4, 0.2);
-            splat(world, feet, 0.75f, 0.75f, 0.75f, "small");
             return;
         }
         if (e instanceof SnowGolem) {
@@ -191,9 +187,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof MagmaCube mc)    { magmaBlood(world, pos, feet, mc); return; }
         if (e instanceof Strider)         { colorBlood(world, pos, feet, 0.7f,  0.3f,  0.6f,  5, "medium"); return; }
         if (e instanceof Blaze)           { colorBlood(world, pos, feet, 1.0f,  0.5f,  0.0f,  5, "medium"); return; }
-        if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.3f,  0.0f,  0.5f,  4, "small");  return; }
+        if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.25f, 0.0f,  0.4f,  4, "small");  return; }
         if (e instanceof Shulker)         { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
-        if (e instanceof EnderMan)        { colorBlood(world, pos, feet, 0.4f,  0.0f,  0.6f,  5, "big");    return; }
+        // Enderman — dark purple
+        if (e instanceof EnderMan)        { colorBlood(world, pos, feet, 0.25f, 0.0f,  0.35f, 5, "big");    return; }
         if (e instanceof Phantom)         { colorBlood(world, pos, feet, 0.2f,  0.1f,  0.4f,  5, "medium"); return; }
         if (e instanceof Ghast)           { colorBlood(world, pos, feet, 0.9f,  0.8f,  0.8f,  8, "big");    return; }
         if (e instanceof Slime sl)        { slimeBlood(world, pos, feet, sl); return; }
@@ -217,14 +214,14 @@ public class BloodNParticlesClient implements ClientModInitializer {
 
         for (int i = 0; i < numSplats; i++) {
             float scale = switch (size) {
-                case "small" -> 0.8f + rng.nextFloat() * 0.3f;
-                case "big"   -> 1.6f + rng.nextFloat() * 0.5f;
-                default      -> 1.1f + rng.nextFloat() * 0.4f;
+                case "small" -> 0.7f + rng.nextFloat() * 0.3f;
+                case "big"   -> 1.5f + rng.nextFloat() * 0.5f;
+                default      -> 1.0f + rng.nextFloat() * 0.4f;
             };
             int texIndex = rng.nextInt(15);
-            float yaw = rng.nextInt(4) * 90f;
-            double ox = i == 0 ? 0 : rand(0.4);
-            double oz = i == 0 ? 0 : rand(0.4);
+            float yaw = rng.nextFloat() * 360f;
+            double ox = i == 0 ? 0 : rand(0.35);
+            double oz = i == 0 ? 0 : rand(0.35);
 
             world.addParticle(
                 new BloodSplatParticleOption(r, g, b, texIndex, scale, yaw, false),
@@ -233,19 +230,18 @@ public class BloodNParticlesClient implements ClientModInitializer {
             );
         }
 
-        // Wall drips — only trigger 40% of the time to avoid buildup
-        if (rng.nextFloat() > 0.4f) return;
+        // Wall drips — only 35% chance per hit
+        if (rng.nextFloat() > 0.35f) return;
 
         float wallScale = switch (size) {
-            case "small" -> 0.35f + rng.nextFloat() * 0.15f;
-            case "big"   -> 0.65f + rng.nextFloat() * 0.2f;
-            default      -> 0.45f + rng.nextFloat() * 0.15f;
+            case "small" -> 0.3f + rng.nextFloat() * 0.15f;
+            case "big"   -> 0.6f + rng.nextFloat() * 0.2f;
+            default      -> 0.4f + rng.nextFloat() * 0.15f;
         };
 
         double[][] offsets = {{1,0}, {-1,0}, {0,1}, {0,-1}};
         float[]    wallYaws = {90f, 270f, 0f, 180f};
 
-        // Only check 1 random neighbor instead of all 4
         int n = rng.nextInt(4);
         double nx = feet.x + offsets[n][0];
         double nz = feet.z + offsets[n][1];
@@ -253,9 +249,9 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (world.getBlockState(neighborPos).isAir()) {
             int drips = switch (size) { case "small" -> 1; case "big" -> 2; default -> 1; };
             for (int d = 0; d < drips; d++) {
-                double wallX = feet.x + offsets[n][0] * 0.501 + (offsets[n][1] != 0 ? rand(0.25) : 0);
-                double wallY = feet.y - 0.15 - d * 0.3 + rand(0.1);
-                double wallZ = feet.z + offsets[n][1] * 0.501 + (offsets[n][0] != 0 ? rand(0.25) : 0);
+                double wallX = feet.x + offsets[n][0] * 0.501 + (offsets[n][1] != 0 ? rand(0.2) : 0);
+                double wallY = feet.y - 0.1 - d * 0.3 + rand(0.08);
+                double wallZ = feet.z + offsets[n][1] * 0.501 + (offsets[n][0] != 0 ? rand(0.2) : 0);
                 world.addParticle(
                     new BloodSplatParticleOption(r, g, b, rng.nextInt(15),
                         wallScale * (1.0f - d * 0.2f), wallYaws[n], true),
