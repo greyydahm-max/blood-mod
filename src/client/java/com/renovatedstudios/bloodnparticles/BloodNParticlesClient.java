@@ -190,9 +190,10 @@ public class BloodNParticlesClient implements ClientModInitializer {
         if (e instanceof Endermite)       { colorBlood(world, pos, feet, 0.25f, 0.0f,  0.4f,  4, "small");  return; }
         if (e instanceof Shulker)         { colorBlood(world, pos, feet, 0.6f,  0.3f,  0.8f,  5, "medium"); return; }
 
+        // Enderman — magenta/purple, high red so it shows through the red texture
         if (e instanceof EnderMan) {
-            dust(world, pos, 0.05f, 0.0f, 1.0f, 1.2f, 5, 0.35, 0.2);
-            splat(world, feet, 0.05f, 0.0f, 1.0f, "big");
+            dust(world, pos, 0.6f, 0.0f, 1.0f, 1.2f, 5, 0.35, 0.2);
+            splat(world, feet, 0.6f, 0.0f, 1.0f, "big");
             squish(world, pos);
             return;
         }
@@ -236,7 +237,6 @@ public class BloodNParticlesClient implements ClientModInitializer {
             );
         }
 
-        // Wall drips — only 35% chance per hit
         if (rng.nextFloat() > 0.35f) return;
 
         float wallScale = switch (size) {
@@ -252,17 +252,13 @@ public class BloodNParticlesClient implements ClientModInitializer {
         double nx = feet.x + offsets[n][0];
         double nz = feet.z + offsets[n][1];
 
-        // Check at mid-body height — must be a full solid block to get a wall drip
-        // This prevents thin blocks like carpet/snow from triggering wall splats
         BlockPos wallCheckPos = BlockPos.containing(nx, feet.y + 0.5, nz);
         BlockState wallState = world.getBlockState(wallCheckPos);
         VoxelShape wallShape = wallState.getCollisionShape(world, wallCheckPos);
 
-        // Only spawn wall drip if neighbor at body height is a solid full-height block
         boolean isSolidWall = !wallShape.isEmpty()
             && wallShape.max(net.minecraft.core.Direction.Axis.Y) >= 0.9;
 
-        // Also check that the block below the wall is a drop-off (air or open)
         BlockPos belowWallPos = BlockPos.containing(nx, feet.y - 0.5, nz);
         boolean isDropOff = world.getBlockState(belowWallPos).isAir();
 
